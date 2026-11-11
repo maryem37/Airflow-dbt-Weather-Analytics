@@ -1,20 +1,21 @@
 import psycopg2
 from api_request import mock_fetch_data, fetch_data
 
+
 def connect_to_db():
     print("Connecting to the PostgreSQL database...")
     try:
-        conn = psycopg2.connect(
+        return psycopg2.connect(
             host="db",
             port=5432,
             dbname="db",
             user="db_user",
             password="db_password"
         )
-        return conn
     except psycopg2.Error as e:
         print(f"Database connection failed: {e}")
         raise
+
 
 def create_table(conn):
     print("Creating table if not exists...")
@@ -27,35 +28,53 @@ def create_table(conn):
                 city TEXT,
                 temperature FLOAT,
                 weather_descriptions TEXT,
-                wind_speed FLOAT
+                wind_speed FLOAT,
+                time TIMESTAMP,
+                inserted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                utc_offset TEXT
             );
         """)
-        conn.commit()  # <-- Commits schema & table creation to PostgreSQL
+        conn.commit()
         cursor.close()
     except psycopg2.Error as e:
         print(f"Failed to create table: {e}")
         raise
 
+
 def insert_data(conn, data):
+    if not data:
+        print("No valid data to insert.")
+        return
+
     print("Inserting data into database...")
     try:
         cursor = conn.cursor()
         cursor.execute("""
-            INSERT INTO dev.raw_weather_data (city, temperature, weather_descriptions, wind_speed)
-            VALUES (%s, %s, %s, %s);
-        """, (data['city'], data['temperature'], data['weather_descriptions'], data['wind_speed']))
-        conn.commit()  # <-- Commits inserted records
+            INSERT INTO dev.raw_weather_data (city, temperature, weather_descriptions, wind_speed, time, utc_offset)
+            VALUES (%s, %s, %s, %s, %s, %s);
+        """, (
+            data.get('city', 'Unknown'),
+            data.get('temperature', 0.0),
+            data.get('weather_descriptions', ''),
+            data.get('wind_speed', 0.0),
+            data.get('time'),
+            data.get('utc_offset')
+        ))
+        conn.commit()
         cursor.close()
     except psycopg2.Error as e:
         print(f"Failed to insert data: {e}")
         raise
 
+
 def main():
     conn = connect_to_db()
     create_table(conn)
-    data = fetch_data()  # or mock_fetch_data()
-    insert_data(conn, data)
+    data = fetch_data()
+    if data:
+        insert_data(conn, data)
     conn.close()
+
 
 if __name__ == "__main__":
     main()
