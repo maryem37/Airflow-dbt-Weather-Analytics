@@ -25,6 +25,7 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
     volumes:
       - ./airflow/dags:/opt/airflow/dags
+      - ./api-request:/opt/airflow/api-request   # <-- ADDED THIS MISSING MOUNT
     depends_on:
       - db
     networks:
