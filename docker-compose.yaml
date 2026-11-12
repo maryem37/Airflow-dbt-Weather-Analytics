@@ -25,12 +25,27 @@ services:
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
     volumes:
       - ./airflow/dags:/opt/airflow/dags
-      - ./api-request:/opt/airflow/api-request   # <-- ADDED THIS MISSING MOUNT
+      - ./api-request:/opt/airflow/api-request
     depends_on:
       - db
     networks:
       - my-network
     command: standalone
+
+ dbt:
+    container_name: dbt_container
+    image: ghcr.io/dbt-labs/dbt-postgres:1.9.latest
+    volumes:
+      - ./dbt/my_project:/usr/app
+      - ./dbt:/root/.dbt
+    working_dir: /usr/app
+    environment:
+      DBT_PROFILES_DIR: "/root/.dbt"
+    depends_on:
+      - db
+    networks:
+      - my-network
+    command: debug
 
 networks:
   my-network:
